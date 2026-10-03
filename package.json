@@ -1,0 +1,10 @@
+{
+  "name": "youtube-reclip-extension",
+  "version": "1.0.1",
+  "private": true,
+  "description": "Chrome/Edge companion extension for self-hosted ReClip",
+  "license": "MIT",
+  "engines": {"node": ">=22.12.0"},
+  "scripts": {"test": "node --check background.js && node --check content.js && node --check popup.js && node tests/extension.cjs"},
+  "devDependencies": {"jsdom": "30.1.1"}
+}

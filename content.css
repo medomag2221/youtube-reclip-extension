@@ -1,0 +1,11 @@
+.reclip-save-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:20px;padding:0 16px;margin:0 6px;min-height:36px;background:#f1f1f1;color:#0f0f0f;font:600 14px Roboto,Arial,sans-serif;cursor:pointer;white-space:nowrap}
+html[dark] .reclip-save-button{background:#303030;color:#f1f1f1}
+.reclip-menu-button{display:flex;align-items:center;gap:16px;box-sizing:border-box;width:100%;min-height:44px;padding:10px 16px;text-align:left;border:0;background:transparent;color:var(--yt-spec-text-primary,#0f0f0f);font:400 14px Roboto,Arial,sans-serif;cursor:pointer;white-space:nowrap}
+html[dark] .reclip-menu-button{color:var(--yt-spec-text-primary,#f1f1f1)}
+.reclip-download-icon{display:block;width:24px;height:24px;flex:0 0 24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.reclip-save-button .reclip-download-icon{width:20px;height:20px;flex-basis:20px}
+.reclip-menu-button:hover{background:var(--yt-spec-badge-chip-background,rgba(128,128,128,.2))}
+.reclip-save-button:disabled,.reclip-menu-button:disabled{opacity:.5;cursor:wait}
+#reclip-toast{position:fixed;bottom:24px;left:24px;max-width:480px;padding:16px 20px;background:#242424;color:#fff;border-radius:12px;box-shadow:0 4px 20px #0005;z-index:2147483647;font:14px/1.5 Arial,sans-serif}
+#reclip-toast[data-error=true]{background:#8a2525}
+#reclip-toast[hidden]{display:none}

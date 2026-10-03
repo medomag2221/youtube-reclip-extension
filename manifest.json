@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube → ReClip",
+  "version": "1.0.1",
+  "description": "Скачать видео YouTube через домашний ReClip в Загрузки/YouTube.",
+  "minimum_chrome_version": "120",
+  "permissions": ["downloads", "storage", "alarms"],
+  "host_permissions": ["http://server-home.lan/*"],
+  "background": {"service_worker": "background.js"},
+  "content_scripts": [{"matches": ["https://www.youtube.com/*", "https://m.youtube.com/*"], "js": ["content.js"], "css": ["content.css"], "run_at": "document_idle"}],
+  "action": {"default_title": "Загрузки ReClip", "default_popup": "popup.html"}
+}
