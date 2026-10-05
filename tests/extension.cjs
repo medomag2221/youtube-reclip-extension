@@ -19,7 +19,39 @@ async function workerTest(){
  store.jobs[0].state='preparing';
  const ctx2=vm.createContext({...ctx});vm.runInContext(fs.readFileSync(path.join(dir,'background.js'),'utf8'),ctx2);await vm.runInContext('poll()',ctx2);
  assert.equal(store.jobs[0].state,'done');
+ // Limit terminal history, never evict active downloads, and keep chronological order.
+ store.jobs=Array.from({length:14},(_,i)=>({id:String(i).padStart(10,'0'),state:i%2?'error':'done'}));
+ store.jobs.splice(1,0,{id:'active0001',state:'preparing'});
+ store.jobs.push({id:'active0002',state:'saving'});
+ await vm.runInContext('jobs().then(save)',ctx);
+ assert.equal(store.jobs.filter(j=>['done','error'].includes(j.state)).length,8);
+ assert.equal(store.jobs.filter(j=>['preparing','saving'].includes(j.state)).length,2);
+ assert.equal(store.jobs.find(j=>j.state==='done'||j.state==='error').id,'0000000006');
+ await vm.runInContext('clearHistory("0000000013")',ctx);
+ assert.equal(store.jobs.length,9);assert.ok(!store.jobs.some(j=>j.id==='0000000013'));
+ await vm.runInContext('clearHistory("active0001")',ctx);assert.ok(store.jobs.some(j=>j.id==='active0001'));
+ await vm.runInContext('clearHistory()',ctx);
+ assert.deepEqual(store.jobs.map(j=>j.state),['preparing','saving']);
  console.log('PASS worker: Cyrillic, safe filenames, URL validation, duplicate task, persistent queue, download completion');
+}
+async function popupTest(){
+ const dom=new JSDOM(fs.readFileSync(path.join(dir,'popup.html'),'utf8'),{url:'chrome-extension://test/popup.html',runScripts:'outside-only'});
+ const w=dom.window;let list=[{id:'0000000001',title:'Готовое',state:'done',downloadId:42},{id:'0000000002',title:'Ошибка',state:'error',error:'403'},{id:'0000000003',title:'Активное',state:'preparing'}];
+ let shown;
+ w.chrome={runtime:{sendMessage:async data=>{
+  if(data.type==='list')return {jobs:structuredClone(list)};
+  list=list.filter(j=>['preparing','saving'].includes(j.state)||(data.type==='removeHistory'&&j.id!==data.id));return {ok:true};
+ }},storage:{onChanged:event()},downloads:{show:id=>{shown=id;}}};
+ w.eval(fs.readFileSync(path.join(dir,'popup.js'),'utf8'));await new Promise(r=>setTimeout(r,20));
+ assert.equal(w.document.querySelectorAll('.remove-history').length,2);
+ const done=Array.from(w.document.querySelectorAll('article')).find(a=>a.textContent.includes('Готовое'));
+ done.querySelector('button').click();assert.equal(shown,42);
+ done.querySelector('.remove-history').click();await new Promise(r=>setTimeout(r,20));
+ assert.equal(list.length,2);assert.ok(!list.some(j=>j.title==='Готовое'));
+ w.document.querySelector('#clear-history').click();await new Promise(r=>setTimeout(r,20));
+ assert.equal(list.length,1);assert.equal(list[0].state,'preparing');
+ assert.equal(w.document.querySelector('#clear-history').disabled,true);
+ dom.window.close();console.log('PASS popup: per-entry removal, clear history, active task preservation, show in folder');
 }
 async function domTest(){
  const dom=new JSDOM(`<ytd-watch-metadata><h1>Русский ролик</h1><div id="actions"><div id="top-level-buttons-computed"><button>Нравится</button><button>Сохранить</button></div></div></ytd-watch-metadata><ytd-rich-item-renderer><a id="video-title" href="/watch?v=ZYXWVUTSRQP" title="Ролик из меню">Ролик из меню</a><ytd-menu-renderer><button id="dots">⋮</button></ytd-menu-renderer></ytd-rich-item-renderer><ytd-menu-popup-renderer><div id="items"><ytd-menu-service-item-renderer>Добавить в очередь</ytd-menu-service-item-renderer></div></ytd-menu-popup-renderer>`,{url:'https://www.youtube.com/watch?v=abcdefghijk',runScripts:'outside-only'});
@@ -48,4 +80,4 @@ async function nestedMenuTest(){
  assert.equal(items.firstElementChild.className,'reclip-menu-button');
  dom.window.close();console.log('PASS nested menu: one button across sheet/list wrappers, first position, stale duplicate repaired');
 }
-(async()=>{await workerTest();await domTest();await nestedMenuTest();})().catch(e=>{console.error(e);process.exitCode=1;});
+(async()=>{await workerTest();await popupTest();await domTest();await nestedMenuTest();})().catch(e=>{console.error(e);process.exitCode=1;});

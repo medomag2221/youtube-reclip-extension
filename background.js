@@ -1,5 +1,7 @@
 const API = 'http://server-home.lan/reclip/api/';
 const ALARM = 'reclip-poll';
+const HISTORY_LIMIT = 8;
+const isActive = job => ['preparing', 'saving'].includes(job.state);
 let lock = Promise.resolve();
 function serialized(fn) {
   const next = lock.then(fn, fn);
@@ -33,10 +35,20 @@ async function request(path, data) {
 }
 async function jobs() { return (await chrome.storage.local.get('jobs')).jobs || []; }
 async function save(list) {
-  await chrome.storage.local.set({jobs: list.slice(-50)});
-  const active = list.filter(j => ['preparing','saving'].includes(j.state)).length;
+  // Retain active tasks until completion; trimming history must not lose downloads.
+  const history = new Set(list.filter(j => !isActive(j)).slice(-HISTORY_LIMIT).map(j => j.id));
+  const retained = list.filter(j => isActive(j) || history.has(j.id));
+  if (JSON.stringify(await jobs()) !== JSON.stringify(retained)) {
+    await chrome.storage.local.set({jobs: retained});
+  }
+  const active = retained.filter(isActive).length;
   await chrome.action.setBadgeText({text: active ? String(active) : ''});
   await chrome.action.setBadgeBackgroundColor({color:'#b3261e'});
+}
+async function clearHistory(id) {
+  const list = await jobs();
+  await save(list.filter(job => isActive(job) || (id && job.id !== id)));
+  return {ok:true};
 }
 async function ensureAlarm() {
   if (!(await chrome.alarms.get(ALARM))) await chrome.alarms.create(ALARM, {periodInMinutes:0.5});
@@ -88,7 +100,17 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     serialized(() => start(message)).then(respond, error => respond({ok:false,error:error.message}));
     return true;
   }
-  if (message.type === 'list') { serialized(async () => { await poll(); return {jobs:await jobs()}; }).then(respond, error => respond({error:error.message})); return true; }
+  if (message.type === 'list') { serialized(async () => { await save(await jobs()); return {jobs:await jobs()}; }).then(respond, error => respond({error:error.message})); return true; }
+  if (message.type === 'clearHistory' || message.type === 'removeHistory') {
+    // Destructive history actions are allowed only from our extension popup.
+    if (sender.tab || !String(sender.url || '').startsWith(chrome.runtime.getURL(''))) return;
+    if (message.type === 'removeHistory' && !/^[a-f0-9]{10}$/.test(message.id || '')) {
+      respond({ok:false,error:'Неверный номер записи.'}); return;
+    }
+    serialized(() => clearHistory(message.type === 'removeHistory' ? message.id : null))
+      .then(respond, error => respond({ok:false,error:error.message}));
+    return true;
+  }
 });
 chrome.alarms.onAlarm.addListener(alarm => { if (alarm.name === ALARM) serialized(poll).catch(console.error); });
 chrome.downloads.onChanged.addListener(delta => {
@@ -97,5 +119,5 @@ chrome.downloads.onChanged.addListener(delta => {
     if (job) { if (delta.state.current === 'complete') job.state = 'done'; else if (delta.state.current === 'interrupted') {job.state='error';job.error='Загрузка на ПК прервана.';} await save(list); }
   }).catch(console.error);
 });
-chrome.runtime.onInstalled.addListener(() => ensureAlarm().catch(console.error));
+chrome.runtime.onInstalled.addListener(() => { ensureAlarm().then(() => serialized(async () => save(await jobs()))).catch(console.error); });
 chrome.runtime.onStartup.addListener(() => { ensureAlarm().then(() => serialized(poll)).catch(console.error); });

@@ -10,6 +10,8 @@ file to the `YouTube` subfolder of your browser's download directory.
 - The same action as the **first item** in a video card's three-dot menu.
 - Unicode filenames, including Cyrillic; invalid Windows filename characters are sanitized.
 - Persistent task queue,30-second background polling, download status popup and “Show in folder”.
+- History keeps the latest eight finished/failed tasks. Clear all history or remove
+  one entry from the popup without deleting files or cancelling active downloads.
 - One menu entry even when YouTube nests popup/list renderers.
 - No automatic playback, account access, cookies, likes or view-count manipulation.
 
@@ -52,6 +54,10 @@ There is no telemetry, remote code or Google login. Task URL/title/status are st
 locally; the selected URL/title are sent to your configured ReClip server when you click
 Download. The extension never opens a player automatically.
 
+Upgrading to 1.0.2 trims old history automatically. Active tasks are retained
+separately and may appear in addition to the eight history entries. Clearing this
+history does not erase the browser's Downloads list or the ReClip server journal.
+
 ## Limitations
 
 - Chromium browsers only; not packaged/tested for Firefox.
@@ -82,6 +88,10 @@ is still needed to verify its current YouTube layout.
 Расширение добавляет «Скачать на ПК» рядом с сохранением и первым пунктом меню «⋮».
 Видео готовится на вашем ReClip, затем скачивается в `Загрузки/YouTube` с исходным
 названием, включая кириллицу. Статусы — по значку расширения.
+
+В истории остаются последние 8 завершённых загрузок и ошибок. «Очистить историю»
+удаляет их все; «Удалить запись» — одну. Скачанные файлы не удаляются, активные
+задачи сохраняются отдельно. Старые записи сокращаются сразу после обновления.
 
 Установка: `chrome://extensions` или `edge://extensions` → «Режим разработчика» →
 «Загрузить распакованное» → папка с `manifest.json` → обновить YouTube.

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.2 — 2026-10-06
+
+- Keep only the latest eight finished/failed history entries; preserve all active tasks.
+- Add clear-history and individual remove-entry buttons without deleting files.
+- Trim old history on extension update and popup opening.
+- Avoid writing unchanged storage or polling the server on every popup redraw.
+- Add regression tests for retention and safe manual cleanup.
+
 ## 1.0.1 — 2026-10-04
 
 - Fix duplicate actions in nested YouTube sheet/list menus.
